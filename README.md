@@ -3,8 +3,7 @@
 Your intelligent companion that helps you navigate conversations with confidence using AI-powered awareness monitoring, stress tracking, and real-time translation.
 
 > [!NOTE]
-> Built for a hackathon themed around AI-powered tools, where it won **second prize**. Our goal was to build it
-> without writing a single line of code ourselves, from the app itself to the final presentation.
+> Built in ~4hours during an evening hackathon themed around AI-powered tools, with presentations the following day, where it won **second prize**. Our goal was to build it without writing a single line of code ourselves, from the app itself to the final presentation.
 >
 > This repository is an archived port of the original project. The original relied on Supabase (auth, database, edge
 > functions), Azure OpenAI and Gemini; this version keeps the same idea, features and look, but every AI step runs
@@ -49,4 +48,3 @@ Models live in the browser's Cache Storage, scoped to the page origin (e.g. `htt
 - Inspect or delete them in DevTools → **Application** → **Cache storage**, or free everything with **Storage** → **Clear site data**.
 - Each origin has its own cache, so a different port (e.g. `bun run preview` on `4173`) downloads the models again.
 - The browser may evict the cache under disk pressure; in that case the models are simply downloaded again.
-
