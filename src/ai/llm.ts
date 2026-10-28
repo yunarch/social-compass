@@ -103,8 +103,12 @@ export async function suggestQuestion(transcript: string, score: number) {
     : FALLBACK_SUGGESTION;
 }
 
-export function generateExcuse(transcript: string, score: number) {
-  return complete(EXCUSE_SYSTEM_PROMPT, excuseUserPrompt(transcript, score));
+export async function generateExcuse(transcript: string, score: number) {
+  const excuse = await complete(
+    EXCUSE_SYSTEM_PROMPT,
+    excuseUserPrompt(transcript, score)
+  );
+  return excuse.replace(/^["“”']+|["“”']+$/g, '').trim();
 }
 
 export function translate(text: string, language: Language) {

@@ -8,9 +8,11 @@ import {
   type Analysis,
   type Language,
 } from '../ai/llm';
-import { decodeAudio, loadStt, transcribe } from '../ai/stt';
+import { loadStt, transcribe } from '../ai/stt';
 import { speak, stopSpeaking, type SpeechKind } from '../ai/tts';
 
+// Whisper expects 16 kHz mono samples.
+const SAMPLE_RATE = 16_000;
 const CHUNK_MS = 5_000;
 const SILENCE_RMS = 0.01;
 const MIN_ANALYSIS_CHARS = 50;
@@ -31,6 +33,28 @@ function rms(samples: Float32Array) {
   for (const sample of samples) sum += sample * sample;
   return Math.sqrt(sum / samples.length);
 }
+
+function concat(frames: Float32Array[]) {
+  const result = new Float32Array(
+    frames.reduce((length, frame) => length + frame.length, 0)
+  );
+  let offset = 0;
+  for (const frame of frames) {
+    result.set(frame, offset);
+    offset += frame.length;
+  }
+  return result;
+}
+
+const CAPTURE_PROCESSOR = `registerProcessor('pcm-capture', class extends AudioWorkletProcessor {
+  process([input]) {
+    if (input?.[0]) this.port.postMessage(input[0].slice());
+    return true;
+  }
+});`;
+const captureProcessorUrl = URL.createObjectURL(
+  new Blob([CAPTURE_PROCESSOR], { type: 'text/javascript' })
+);
 
 // Whisper emits markers like "[BLANK_AUDIO]" or "(music)" for non-speech.
 const cleanTranscript = (text: string) =>
@@ -85,8 +109,7 @@ export function useConversationMonitor(language: Language | null) {
   }, []);
 
   const processChunk = useCallback(
-    async (blob: Blob, session: number) => {
-      const audio = await decodeAudio(blob);
+    async (audio: Float32Array, session: number) => {
       if (rms(audio) < SILENCE_RMS) return;
       const text = cleanTranscript(await transcribe(audio));
       if (!text || session !== sessionRef.current) return;
@@ -117,11 +140,18 @@ export function useConversationMonitor(language: Language | null) {
   );
 
   const startCapture = useCallback(
-    (stream: MediaStream, session: number) => {
-      const context = new AudioContext();
+    async (stream: MediaStream, session: number) => {
+      // The browser resamples the microphone to the context rate.
+      const context = new AudioContext({ sampleRate: SAMPLE_RATE });
+      await context.audioWorklet.addModule(captureProcessorUrl);
+      const source = context.createMediaStreamSource(stream);
       const analyser = context.createAnalyser();
       analyser.fftSize = 256;
-      context.createMediaStreamSource(stream).connect(analyser);
+      source.connect(analyser);
+      const capture = new AudioWorkletNode(context, 'pcm-capture', {
+        numberOfOutputs: 0,
+      });
+      source.connect(capture);
       const levels = new Uint8Array(analyser.frequencyBinCount);
       let frame = 0;
       const tick = () => {
@@ -133,33 +163,26 @@ export function useConversationMonitor(language: Language | null) {
       };
       tick();
 
-      // Each segment gets its own recorder so every blob is a standalone, decodable file.
-      let active = true;
-      let recorder: MediaRecorder;
-      let timer: ReturnType<typeof setTimeout>;
-      const recordSegment = () => {
-        const segment = new MediaRecorder(stream);
-        const parts: Blob[] = [];
-        segment.ondataavailable = (event) => parts.push(event.data);
-        segment.onstop = () => {
-          const blob = new Blob(parts, { type: segment.mimeType });
-          queueRef.current = queueRef.current
-            .then(() => processChunk(blob, session))
-            .catch((processError: unknown) =>
-              setError(errorMessage(processError))
-            );
-          if (active) recordSegment();
-        };
-        segment.start();
-        recorder = segment;
-        timer = setTimeout(() => segment.stop(), CHUNK_MS);
+      let frames: Float32Array[] = [];
+      capture.port.onmessage = (event: MessageEvent<Float32Array>) => {
+        frames.push(event.data);
       };
-      recordSegment();
+      const flush = () => {
+        if (frames.length === 0) return;
+        const audio = concat(frames);
+        frames = [];
+        queueRef.current = queueRef.current
+          .then(() => processChunk(audio, session))
+          .catch((processError: unknown) =>
+            setError(errorMessage(processError))
+          );
+      };
+      const timer = setInterval(flush, CHUNK_MS);
 
       return () => {
-        active = false;
-        clearTimeout(timer);
-        if (recorder.state !== 'inactive') recorder.stop();
+        clearInterval(timer);
+        flush();
+        capture.port.onmessage = null;
         cancelAnimationFrame(frame);
         for (const track of stream.getTracks()) track.stop();
         void context.close();
@@ -194,7 +217,7 @@ export function useConversationMonitor(language: Language | null) {
       setAnalysis(null);
       setSuggestion(null);
       setTranslation(null);
-      stopCaptureRef.current = startCapture(stream, session);
+      stopCaptureRef.current = await startCapture(stream, session);
       setStatus('listening');
     } catch (startError) {
       setError(errorMessage(startError));

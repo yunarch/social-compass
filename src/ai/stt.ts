@@ -1,7 +1,5 @@
 import type { SttRequest, SttResponse } from './stt.worker';
 
-const SAMPLE_RATE = 16_000;
-
 let worker: Worker | null = null;
 let ready: Promise<void> | null = null;
 let progressListener: (progress: number) => void = () => {};
@@ -58,13 +56,4 @@ export function transcribe(audio: Float32Array) {
     pending.set(id, { resolve, reject });
     send({ type: 'transcribe', id, audio });
   });
-}
-
-let decoder: AudioContext | null = null;
-
-/** Decodes a recorded blob into 16 kHz mono samples, the format Whisper expects. */
-export async function decodeAudio(blob: Blob) {
-  decoder ??= new AudioContext({ sampleRate: SAMPLE_RATE });
-  const buffer = await decoder.decodeAudioData(await blob.arrayBuffer());
-  return buffer.getChannelData(0);
 }
