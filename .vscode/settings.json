@@ -1,0 +1,35 @@
+{
+  // Formatter
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+
+  // Linter
+  "oxc.requireConfig": true,
+
+  // Auto fix
+  "editor.codeActionsOnSave": {
+    "source.fixAll.oxc": "explicit",
+    "source.removeUnusedImports": "never",
+    "source.organizeImports": "never"
+  },
+  "files.trimTrailingWhitespace": true,
+
+  // IDE options
+  "explorer.sortOrder": "type",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": "active",
+  "editor.semanticHighlighting.enabled": true,
+  "workbench.editor.highlightModifiedTabs": true,
+  "problems.decorations.enabled": true,
+  "explorer.compactFolders": false,
+
+  // Overrides specific languages
+  "[javascript]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  },
+
+  // Customize AI
+  "github.copilot.chat.commitMessageGeneration.instructions": [
+    { "file": ".github/instructions/commit-messages.instructions.md" }
+  ]
+}

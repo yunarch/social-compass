@@ -1,0 +1,16 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-foreground: hsl(220 15% 15%);
+  --color-muted: hsl(220 15% 96%);
+  --color-muted-foreground: hsl(220 10% 45%);
+  --color-border: hsl(220 15% 90%);
+  --color-primary: hsl(185 75% 45%);
+  --color-primary-light: hsl(185 70% 55%);
+  --color-accent: hsl(15 85% 60%);
+  --color-destructive: hsl(0 84% 60%);
+}
+
+body {
+  @apply min-h-screen bg-linear-to-b from-white to-slate-50 text-foreground antialiased;
+}
