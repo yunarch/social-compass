@@ -3,11 +3,16 @@
 Your intelligent companion that helps you navigate conversations with confidence using AI-powered awareness monitoring, stress tracking, and real-time translation.
 
 > [!NOTE]
-> Built for a hackathon themed around creating AI-powered tools, where it won **second prize**.
+> Built for a hackathon themed around AI-powered tools, where it won **second prize**. Our goal was to build it
+> without writing a single line of code ourselves, from the app itself to the final presentation.
 >
-> This repository is an archived, fully local version of the original hackathon project. The original used Supabase
-> (auth, database, edge functions) with Azure OpenAI and Gemini. Here, every AI step runs in the browser instead.
+> This repository is an archived port of the original project. The original relied on Supabase (auth, database, edge
+> functions), Azure OpenAI and Gemini; this version keeps the same idea, features and look, but every AI step runs
+> locally in the browser.
 
+<p align="center">
+  <img src="docs/assets/screenshot.png" alt="Social Compass detecting an awkward conversation, translating it to Spanish and suggesting an excuse to leave" width="600" />
+</p>
 
 ## How it works
 
